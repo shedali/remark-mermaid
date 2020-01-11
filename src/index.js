@@ -1,13 +1,11 @@
-const fs = require('fs-extra');
-const visit = require('unist-util-visit');
-const utils = require('./utils');
-
-const render = utils.render;
-const renderFromFile = utils.renderFromFile;
-const getDestinationDir = utils.getDestinationDir;
-const createMermaidDiv = utils.createMermaidDiv;
-
-const PLUGIN_NAME = 'remark-mermaid';
+const fs = require('fs-extra')
+const visit = require('unist-util-visit')
+const utils = require('./utils')
+const render = utils.render
+const renderFromFile = utils.renderFromFile
+const getDestinationDir = utils.getDestinationDir
+const createMermaidDiv = utils.createMermaidDiv
+const PLUGIN_NAME = 'remark-mermaid'
 
 /**
  * Is this title `mermaid:`?
@@ -15,7 +13,7 @@ const PLUGIN_NAME = 'remark-mermaid';
  * @param  {string} title
  * @return {boolean}
  */
-const isMermaid = title => title === 'mermaid:';
+const isMermaid = title => title === 'mermaid:'
 
 /**
  * Given a node which contains a `url` property (eg. Link or Image), follow
@@ -26,25 +24,25 @@ const isMermaid = title => title === 'mermaid:';
  * @param   {vFile}   vFile
  * @return {object}
  */
-function replaceUrlWithGraph(node, vFile) {
-  const { title, url, position } = node;
-  const { destinationDir } = vFile.data;
+function replaceUrlWithGraph (node, vFile) {
+  const { title, url, position } = node
+  const { destinationDir } = vFile.data
 
   // If the node isn't mermaid, ignore it.
   if (!isMermaid(title)) {
-    return node;
+    return node
   }
 
   try {
     // eslint-disable-next-line no-param-reassign
-    node.url = renderFromFile(`${vFile.dirname}/${url}`, destinationDir);
+    node.url = renderFromFile(`${vFile.dirname}/${url}`, destinationDir)
 
-    vFile.info('mermaid link replaced with link to graph', position, PLUGIN_NAME);
+    vFile.info('mermaid link replaced with link to graph', position, PLUGIN_NAME)
   } catch (error) {
-    vFile.message(error, position, PLUGIN_NAME);
+    vFile.message(error, position, PLUGIN_NAME)
   }
 
-  return node;
+  return node
 }
 
 /**
@@ -57,27 +55,28 @@ function replaceUrlWithGraph(node, vFile) {
  * @param  {vFile}    vFile
  * @return {object}
  */
-function replaceLinkWithEmbedded(node, index, parent, vFile) {
-  const { title, url, position } = node;
-  let newNode;
+function replaceLinkWithEmbedded (node, index, parent, vFile) {
+  const { title, url, position } = node
+  let newNode
 
   // If the node isn't mermaid, ignore it.
   if (!isMermaid(title)) {
-    return node;
+    return node
   }
 
   try {
-    const value = fs.readFileSync(`${vFile.dirname}/${url}`, { encoding: 'utf-8' });
-
-    newNode = createMermaidDiv(value);
-    parent.children.splice(index, 1, newNode);
-    vFile.info('mermaid link replaced with div', position, PLUGIN_NAME);
+    const value = fs.readFileSync(`${vFile.dirname}/${url}`, { encoding: 'utf-8' })
+    console.log(value)
+    newNode = createMermaidDiv(value)
+    parent.children.splice(index, 1, newNode)
+    vFile.info('mermaid link replaced with div', position, PLUGIN_NAME)
   } catch (error) {
-    vFile.message(error, position, PLUGIN_NAME);
-    return node;
+    console.log(error)
+    vFile.message(error, position, PLUGIN_NAME)
+    return node
   }
 
-  return node;
+  return node
 }
 
 /**
@@ -90,46 +89,46 @@ function replaceLinkWithEmbedded(node, index, parent, vFile) {
  * @param {boolean} isSimple
  * @return {function}
  */
-function visitCodeBlock(ast, vFile, isSimple) {
+function visitCodeBlock (ast, vFile, isSimple) {
   return visit(ast, 'code', (node, index, parent) => {
-    const { lang, value, position } = node;
-    const destinationDir = getDestinationDir(vFile);
-    let newNode;
+    const { lang, value, position } = node
+    const destinationDir = getDestinationDir(vFile)
+    let newNode
 
     // If this codeblock is not mermaid, bail.
     if (lang !== 'mermaid') {
-      return node;
+      return node
     }
 
     // Are we just transforming to a <div>, or replacing with an image?
     if (isSimple) {
-      newNode = createMermaidDiv(value);
+      newNode = createMermaidDiv(value)
 
-      vFile.info(`${lang} code block replaced with div`, position, PLUGIN_NAME);
+      vFile.info(`${lang} code block replaced with div`, position, PLUGIN_NAME)
 
     // Otherwise, let's try and generate a graph!
     } else {
-      let graphSvgFilename;
+      let graphSvgFilename
       try {
-        graphSvgFilename = render(value, destinationDir);
+        graphSvgFilename = render(value, destinationDir)
 
-        vFile.info(`${lang} code block replaced with graph`, position, PLUGIN_NAME);
+        vFile.info(`${lang} code block replaced with graph`, position, PLUGIN_NAME)
       } catch (error) {
-        vFile.message(error, position, PLUGIN_NAME);
-        return node;
+        vFile.message(error, position, PLUGIN_NAME)
+        return node
       }
 
       newNode = {
         type: 'image',
         title: '`mermaid` image',
-        url: graphSvgFilename,
-      };
+        url: graphSvgFilename
+      }
     }
 
-    parent.children.splice(index, 1, newNode);
+    parent.children.splice(index, 1, newNode)
 
-    return node;
-  });
+    return node
+  })
 }
 
 /**
@@ -142,12 +141,12 @@ function visitCodeBlock(ast, vFile, isSimple) {
  * @param {boolean} isSimple
  * @return {function}
  */
-function visitLink(ast, vFile, isSimple) {
+function visitLink (ast, vFile, isSimple) {
   if (isSimple) {
-    return visit(ast, 'link', (node, index, parent) => replaceLinkWithEmbedded(node, index, parent, vFile));
+    return visit(ast, 'link', (node, index, parent) => replaceLinkWithEmbedded(node, index, parent, vFile))
   }
 
-  return visit(ast, 'link', node => replaceUrlWithGraph(node, vFile));
+  return visit(ast, 'link', node => replaceUrlWithGraph(node, vFile))
 }
 
 /**
@@ -160,12 +159,12 @@ function visitLink(ast, vFile, isSimple) {
  * @param {boolean} isSimple
  * @return {function}
  */
-function visitImage(ast, vFile, isSimple) {
+function visitImage (ast, vFile, isSimple) {
   if (isSimple) {
-    return visit(ast, 'image', (node, index, parent) => replaceLinkWithEmbedded(node, index, parent, vFile));
+    return visit(ast, 'image', (node, index, parent) => replaceLinkWithEmbedded(node, index, parent, vFile))
   }
 
-  return visit(ast, 'image', node => replaceUrlWithGraph(node, vFile));
+  return visit(ast, 'image', node => replaceUrlWithGraph(node, vFile))
 }
 
 /**
@@ -181,8 +180,8 @@ function visitImage(ast, vFile, isSimple) {
  * @param {object} options
  * @return {function}
  */
-function mermaid(options = {}) {
-  const simpleMode = options.simple || false;
+function mermaid (options = {}) {
+  const simpleMode = options.simple || false
 
   /**
    * @param {object} ast MDAST
@@ -190,17 +189,17 @@ function mermaid(options = {}) {
    * @param {function} next
    * @return {object}
    */
-  return function transformer(ast, vFile, next) {
-    visitCodeBlock(ast, vFile, simpleMode);
-    visitLink(ast, vFile, simpleMode);
-    visitImage(ast, vFile, simpleMode);
+  return function transformer (ast, vFile, next) {
+    visitCodeBlock(ast, vFile, simpleMode)
+    visitLink(ast, vFile, simpleMode)
+    visitImage(ast, vFile, simpleMode)
 
     if (typeof next === 'function') {
-      return next(null, ast, vFile);
+      return next(null, ast, vFile)
     }
 
-    return ast;
-  };
+    return ast
+  }
 }
 
-module.exports = mermaid;
+module.exports = mermaid
