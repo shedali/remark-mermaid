@@ -25,7 +25,6 @@ function render (source, destination = process.cwd()) {
   fs.outputFileSync(mmdPath, source)
 
   // Invoke mermaid.cli
-  debugger
   execSync(`${mmdcExecutable} -i ${mmdPath} -o ${svgPath} -b transparent`)
 
   // Clean up temporary file
