@@ -190,7 +190,7 @@ function mermaid (options = {}) {
    * @return {object}
    */
   return function transformer (ast, vFile, next) {
-    vFile.data = options;
+    vFile.data = {...vFile.data, ...options};
     visitCodeBlock(ast, vFile, simpleMode)
     visitLink(ast, vFile, simpleMode)
     visitImage(ast, vFile, simpleMode)
